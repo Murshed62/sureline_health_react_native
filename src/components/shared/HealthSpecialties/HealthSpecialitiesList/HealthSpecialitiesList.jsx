@@ -4,6 +4,7 @@ import {useNavigation} from '@react-navigation/native';
 import SpecialitiesCard from '../SpecialitiesCard/SpecialitiesCard';
 
 const HealthSpecialitiesList = ({home, filterDoctor}) => {
+  console.log('homeCheck', home);
   console.log(home)
   const navigation = useNavigation();
 

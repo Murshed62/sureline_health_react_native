@@ -83,7 +83,7 @@ const FindDoctors = () => {
         numColumns={2} // ✅ Display 2 items per row
         renderItem={({item}) => (
           <View style={styles.cardContainer}>
-            <HealthSpecialitiesList filterDoctor={[item]}/>
+            <HealthSpecialitiesList filterDoctor={[item]} home={false}/>
           </View>
         )}
         contentContainerStyle={styles.listContainer}

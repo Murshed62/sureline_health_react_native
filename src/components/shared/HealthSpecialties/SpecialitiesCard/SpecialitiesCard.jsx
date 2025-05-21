@@ -3,8 +3,8 @@ import {View, Text, Image, TouchableOpacity, StyleSheet} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import DoctorProfileModal from '../../../../modal/DoctorProfileModal';
 
-const SpecialitiesCard = ({item, isSingle,home}) => {
-  console.log(home);
+const SpecialitiesCard = ({item, isSingle, home}) => {
+  console.log('specialitiesCard', home);
   const [modalVisible, setModalVisible] = useState(false);
   const navigation = useNavigation();
   if (!item) {
@@ -19,18 +19,11 @@ const SpecialitiesCard = ({item, isSingle,home}) => {
   };
 
   const handleBookNow = () => {
-    console.log(home)
-    if(!home){
-      console.log('not home')
-      navigation.navigate('Dashboard', {
+    navigation.navigate('Home', {
         screen: 'BookAppointment',
         params: {doctorId: item?._id},
       });
-    }
-    else{
-      navigation.navigate('BookAppointment', { doctorId: item?._id });
 
-    }
   };
 
   return (

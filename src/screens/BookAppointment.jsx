@@ -37,7 +37,6 @@ const BookAppointment = () => {
   const [showPicker, setShowPicker] = useState(false);
   const navigation = useNavigation();
   const {doctorId} = useRoute().params || {};
-  console.log(doctorId);
 
   const {
     control,
@@ -50,11 +49,11 @@ const BookAppointment = () => {
   const {getPatient} = useStoreActions(actions => actions.patient);
   const {initializeUser} = useStoreActions(actions => actions.user);
   const {patient} = useStoreState(state => state.patient);
-  const {user} = useStoreState(state => state.user);
+  const {user, token} = useStoreState(state => state.user);
   console.log(patient);
   // const {patientID} = useStoreState(state => state.patientID);
   // console.log(patientID);
-  const {resetPercentage} = useStoreActions(actions => actions.promoCode);
+  const {resetPromoCode} = useStoreActions(actions => actions.promoCode);
 
   // const userID = user?._id;
 
@@ -70,9 +69,9 @@ const BookAppointment = () => {
 
   useEffect(() => {
     if (user?._id) {
-      getPatient(user._id);
+      getPatient({id: user?._id, token});
     }
-  }, [getPatient, user]);
+  }, [getPatient, user, token]);
 
   useEffect(() => {
     if (doctorId) {
@@ -114,6 +113,7 @@ const BookAppointment = () => {
   };
 
   const onSubmit = data => {
+    resetPromoCode();
     if (!dateValue || !timeValue) {
       Alert('Please select a schedule and time slot.');
       return;
@@ -129,7 +129,7 @@ const BookAppointment = () => {
       timeValue,
       ...data,
     };
-    resetPercentage();
+    console.log(payload);
     navigation.navigate('PaymentPage', {state: payload});
   };
 

@@ -105,7 +105,7 @@ const LoginStack = () => (
 // ✅ **Dashboard Stack for Patients**
 const DashboardStack = () => (
   <Stack.Navigator screenOptions={{headerShown: false}}>
-    <Stack.Screen name="Home" component={Dashboard} />
+    <Stack.Screen name="DashboardHome" component={Dashboard} />
     <Stack.Screen name="MyProfile" component={MyProfile} />
     <Stack.Screen name="MyAppointments" component={MyAppointments} />
     <Stack.Screen name="InstantVideo" component={InstantVideo} />

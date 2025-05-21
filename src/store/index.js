@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ToastAndroid} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {removeTokenUser, storeTokenUser} from '../utils/index.js';
+import { Linking } from 'react-native';
 // import {Linking} from 'react-native';
 // import Config from 'react-native-config';
 
@@ -642,13 +643,31 @@ const sslCommerzModel = {
   addUrl: action((state, payload) => {
     state.url = payload;
   }),
-  getUrl: thunk(async (actions, payload) => {
-    const {data} = await axios.post(
+  getUrl: thunk(async (actions, { payload, token }) => {
+  try {
+    console.log(payload);
+    console.log(token);
+
+    const { data } = await axios.post(
       'https://api.surelinehealth.com/api/initApplyForPayment',
       payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
-    window.location.href = data;
-  }),
+
+    console.log('Redirecting to:', data);
+    if (data) {
+      Linking.openURL(data); // Opens in mobile browser
+    } else {
+      console.error('Invalid URL returned from API');
+    }
+  } catch (error) {
+    console.error('Error in getUrl thunk:', error);
+  }
+}),
 };
 const freeAppointmentModel = {
   data: null,
@@ -719,98 +738,80 @@ const adminModel = {
 };
 const promoCodeModel = {
   createdPromoData: null,
+  singlePromoCode: null,
   allPromoData: [],
-  percentage: 0,
+  promoCodeByCode: null,
   error: null,
   deletedData: null,
   updatedData: null,
   addError: action((state, payload) => {
     state.error = payload;
   }),
-  addPercentage: action((state, payload) => {
-    state.percentage = payload;
+  addPromoCodeByCode: action((state, payload) => {
+    state.promoCodeByCode = payload;
   }),
   addPromoData: action((state, payload) => {
     state.createdPromoData = payload;
   }),
-  createPromoCode: thunk(async (actions, {data: createData}) => {
-    try {
-      const {data} = await axios.post(
-        'https://api.surelinehealth.com/api/promoCode',
-        createData,
-      );
-      console.log(data);
-      actions.addPromoData(data);
-      actions.addError(null);
-      ToastAndroid.success('Created a New Promo Code', {position: 'top-right'});
-    } catch (e) {
-      actions.addError(e?.response?.data?.message);
-    }
-  }),
-  addAllPromoData: action((state, payload) => {
-    state.allPromoData = payload;
-  }),
-  getAllPromoCode: thunk(async actions => {
-    const {data} = await axios.get(
-      'https://api.surelinehealth.com/api/promoCodes',
-    );
-    actions.addAllPromoData(data);
-  }),
-  getPercentage: thunk(async (actions, payload) => {
+  getPromoCodeByCode: thunk(async (actions, {code, userId, token}) => {
     try {
       const {data} = await axios.post(
         'https://api.surelinehealth.com/api/promoCodeValidate',
+        {code, userId},
         {
-          code: payload,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
       );
-      // console.log(data);
-      if (data.valid) {
-        actions.addPercentage(data.percentage);
-        actions.addError(null);
-      } else {
-        actions.addPercentage(0);
-        actions.addError(data.message);
-      }
+
+      actions.addPromoCodeByCode(data);
+      actions.addError(null);
     } catch (error) {
-      actions.addPercentage(0);
-      actions.addError(error.response?.data?.message || 'Something went Wrong');
+      actions.addPromoCodeByCode(null);
+      actions.addError(error.response?.data?.message || 'Something went wrong');
     }
   }),
   addDeletedData: action((state, payload) => {
     state.deletedData = payload;
   }),
-  deletePromoCode: thunk(async (actions, {id}) => {
-    try {
-      const {data} = await axios.delete(
-        `https://api.surelinehealth.com/api/promoCodes/${id}`,
-      );
-      // console.log(data);
-      actions.addDeletedData(data);
-      actions.addError(null);
-      ToastAndroid.success('Deleted Successfully', {position: 'top-right'});
-    } catch (e) {
-      actions.addError(e?.response?.data?.message);
-    }
-  }),
-  addUpdatedData: action((state, payload) => {
-    state.updatedData = payload;
-  }),
-  updatePromoCode: thunk(async (actions, {id, data: updateData}) => {
-    try {
-      const {data} = await axios.patch(
-        `https://api.surelinehealth.com/api/promoCodes/${id}`,
-        updateData,
-      );
-      actions.addUpdatedData(data);
-    } catch (e) {
-      console.log(e);
-    }
-  }),
-
-  resetPercentage: action(state => {
-    state.percentage = 0;
+  // addUpdatedData: action((state, payload) => {
+  //   state.updatedData = payload;
+  // }),
+  // updatePromoCode: thunk(async (actions, {id, data: updateData}) => {
+  //   try {
+  //     const {data} = await axios.patch(
+  //       `${api_base_url}/api/promoCodes/${id}`,
+  //       updateData,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       },
+  //     );
+  //     actions.addUpdatedData(data);
+  //   } catch (e) {
+  //     toast.error(e?.response?.data.message);
+  //     console.log(e);
+  //   }
+  // }),
+  resetPromoCode: action(state => {
+    state.promoCodeByCode = 0;
     state.error = null;
+  }),
+  addSinglePromoCode: action((state, payload) => {
+    state.singlePromoCode = payload;
+  }),
+  getSinglePromoCode: thunk(async (actions, {id, token}) => {
+    const {data} = await axios.get(
+      `https://api.surelinehealth.com/api/promoCodes/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    actions.addSinglePromoCode(data);
   }),
 };
 const superAdminModel = {
@@ -883,7 +884,7 @@ const store = createStore({
   promoCode: promoCodeModel,
   superAdmin: superAdminModel,
   freeAppointment: freeAppointmentModel,
-  healthHub:healthHubModel,
+  healthHub: healthHubModel,
 });
 
 // Initialize user on app start
