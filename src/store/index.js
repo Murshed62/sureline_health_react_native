@@ -4,6 +4,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ToastAndroid} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {removeTokenUser, storeTokenUser} from '../utils/index.js';
 // import {Linking} from 'react-native';
 // import Config from 'react-native-config';
 
@@ -23,9 +24,11 @@ const userModel = {
   allUsers: [],
   registerData: null,
   registerError: null,
+  loginError: null,
   isLogoutUser: false,
   isLogIn: false,
-  user: null, // Initially set to null
+  user: null,
+  token: null, // Initially set to null
   // Fetch user data from AsyncStorage
 
   initializeUser: thunk(async actions => {
@@ -52,7 +55,6 @@ const userModel = {
         {headers: {'Content-Type': 'multipart/form-data'}},
       );
       ToastAndroid.show(data.message, ToastAndroid.SHORT);
-      console.log(data);
 
       if (data.success) {
         setTimeout(() => {
@@ -73,7 +75,6 @@ const userModel = {
         'https://api.surelinehealth.com/api/otp-verification',
         verifyingData,
       );
-      console.log(data);
       if (data.success) {
         if (
           data?.user?.role === 'patient' ||
@@ -82,8 +83,10 @@ const userModel = {
           ToastAndroid.show(data.message, ToastAndroid.SHORT);
           actions.addUser(data.user);
           actions.addIslogIn(true);
-          await AsyncStorage.setItem('token', data.token);
-          await AsyncStorage.setItem('user', JSON.stringify(data.user));
+          storeTokenUser({
+            token: data.token,
+            user: JSON.stringify(data.user),
+          });
           navigation.navigate('TabNavigator');
         }
         if (data?.user?.role === 'doctor') {
@@ -98,58 +101,57 @@ const userModel = {
       console.log(error);
     }
   }),
-
+  addLoginError: action((state, payload) => {
+    state.loginError = payload;
+  }),
   loginUser: thunk(async (actions, {loginData, from, navigate}) => {
-    console.log('Login Data Sent:', loginData);
-
     try {
       const {data} = await axios.post(
         'https://api.surelinehealth.com/api/login',
         loginData,
         {headers: {'Content-Type': 'application/json'}},
       );
-
-      console.log('API Response:', data);
-
+      console.log(data);
       if (data.success) {
-        ToastAndroid.show(data.message, ToastAndroid.SHORT);
-        actions.addUser(data.user);
-        actions.addIslogIn(true);
-        console.log(data);
+        if (data?.user?.forcePasswordReset) {
+          ToastAndroid.show('Reset Your Password!', ToastAndroid.SHORT);
+          navigate('ForceReset', {credential: data.user.credential});
+          return;
+        }
+        if (data.user.role === 'patient' || data.user.role === 'healthHub') {
+          actions.addUser(data.user);
+          actions.addIslogIn('true');
 
-        await AsyncStorage.setItem('token', data.token);
-        await AsyncStorage.setItem('user', JSON.stringify(data.user));
-
-        // Navigate after successful login
-        navigate.reset({
-          index: 0,
-          routes: [{name: from || 'DashboardStack'}],
-        });
-
-        return {success: true};
-      } else {
-        return {success: false, message: data.message};
+          storeTokenUser({
+            token: data.token,
+            user: JSON.stringify(data.user),
+          });
+          // await AsyncStorage.setItem('user', JSON.stringify(data.user));
+          ToastAndroid.show('Login Successfully', ToastAndroid.SHORT);
+          navigate(from, {replace: true});
+          return;
+        }
       }
     } catch (error) {
-      console.error('Login Error:', error.response?.data || error.message);
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Something went wrong',
-      };
+      console.error(error);
+      actions.addLoginError(error?.response?.data?.message) || 'Login Failed';
     }
+  }),
+  loadUser: action((state, {user, token}) => {
+    state.user = user || null;
+    state.token = token || null;
   }),
 
   addLogoutData: action(state => {
     state.user = null;
+    state.token = null;
     state.isLogoutUser = true;
   }),
 
-  logoutUser: thunk(async (actions, {token, navigate}) => {
+  logoutUser: thunk(async actions => {
     try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      actions.addLogoutData();
-      navigate('TabNavigator');
+      await removeTokenUser(); // ✅ await this!
+      actions.addLogoutData(); // ✅ reset store
     } catch (error) {
       console.error('Logout Error:', error);
     }
@@ -364,18 +366,17 @@ const patientModel = {
     state.patient = payload;
   }),
 
-  // Thunk to fetch patient details
-  getPatient: thunk(async (actions, payload) => {
-    try {
-      const {data} = await axios.get(
-        `https://api.surelinehealth.com/api/patient/${payload}`,
-      );
-      actions.addPatient(data);
-    } catch (error) {
-      console.error('Error fetching patient:', error);
-    }
+  getPatient: thunk(async (actions, {id, token}) => {
+    const {data} = await axios.get(
+      `https://api.surelinehealth.com/api/patient/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    actions.addPatient(data);
   }),
-
   // Action to set delete state
   addDeleteState: action((state, payload) => {
     state.deleteState = payload;
@@ -830,12 +831,41 @@ const superAdminModel = {
     actions.addCreatedAdmin(data);
   }),
 };
-
 const profileImageModel = {
   profileImage: null, // Initial value is null
   setProfileImage: (state, imageUri) => {
     state.profileImage = imageUri;
   },
+};
+const healthHubModel = {
+  isLoading: false,
+  healthHub: null,
+  updatedData: null,
+  allHealthHub: [],
+  refAppointments: [],
+  allRefAppointments: [],
+  addHealthHub: action((state, payload) => {
+    state.healthHub = payload;
+  }),
+  addIsloading: action((state, payload) => {
+    state.isLoading = payload;
+  }),
+  getHealthHub: thunk(async (actions, {id, token}) => {
+    try {
+      actions.addIsloading(true);
+      const {data} = await axios.get(`/api/healthHub/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      actions.addHealthHub(data);
+      actions.addIsloading(false);
+    } catch (e) {
+      console.log('Health Hub not found', e);
+    } finally {
+      actions.addIsloading(false);
+    }
+  }),
 };
 
 const store = createStore({
@@ -853,6 +883,7 @@ const store = createStore({
   promoCode: promoCodeModel,
   superAdmin: superAdminModel,
   freeAppointment: freeAppointmentModel,
+  healthHub:healthHubModel,
 });
 
 // Initialize user on app start

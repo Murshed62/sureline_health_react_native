@@ -1,11 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {NavigationContainer} from '@react-navigation/native';
+import {NavigationContainer, useNavigation} from '@react-navigation/native';
 import {createDrawerNavigator} from '@react-navigation/drawer';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {enableScreens} from 'react-native-screens';
 import {StoreProvider, useStoreActions, useStoreState} from 'easy-peasy';
-import {View, Text, ActivityIndicator, Image} from 'react-native';
+import {View, Text, ActivityIndicator, Image, ToastAndroid} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import store from './src/store';
@@ -49,6 +49,7 @@ import HealthHubRegistration from './src/screens/HealthHubRegistration';
 import RegistrationNowDropdown from './src/components/RegistrationNowDropdown/RegistrationNowDropdown';
 import MoreDropdown from './src/components/MoreDropDown/MoreDropDown';
 import HealthHub from './src/screens/HealthHub';
+import {getToken} from './src/utils/index.js';
 
 enableScreens();
 
@@ -74,7 +75,6 @@ const PatientRegisterStack = () => (
   <Stack.Navigator screenOptions={{headerShown: false}}>
     {/* Add registration screens here */}
     <Stack.Screen name="PatientRegistration" component={PatientRegistration} />
-    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
     <Stack.Screen name="OtpVerification" component={OtpVerification} />
   </Stack.Navigator>
 );
@@ -82,16 +82,23 @@ const DoctorRegisterStack = () => (
   <Stack.Navigator screenOptions={{headerShown: false}}>
     {/* Add registration screens here */}
     <Stack.Screen name="DoctorRegistration" component={DoctorRegistration} />
-    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
     <Stack.Screen name="OtpVerification" component={OtpVerification} />
   </Stack.Navigator>
 );
 const HealthHubRegisterStack = () => (
   <Stack.Navigator screenOptions={{headerShown: false}}>
     {/* Add registration screens here */}
-    <Stack.Screen name="HealthHubRegistration" component={HealthHubRegistration}/>
-    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+    <Stack.Screen
+      name="HealthHubRegistration"
+      component={HealthHubRegistration}
+    />
     <Stack.Screen name="OtpVerification" component={OtpVerification} />
+  </Stack.Navigator>
+);
+const LoginStack = () => (
+  <Stack.Navigator screenOptions={{headerShown: false}}>
+    <Stack.Screen name="Login" component={Login} />
+    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
   </Stack.Navigator>
 );
 
@@ -138,24 +145,22 @@ const TabNavigator = () => (
 // ✅ **Doctor Stack for Doctor Role**
 
 // ✅ **Logout Screen**
-const LogoutScreen = ({navigation}) => {
+const LogoutScreen = () => {
+  const navigation = useNavigation();
   const logoutUser = useStoreActions(actions => actions.user.logoutUser);
-  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    const fetchTokenAndLogout = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        setToken(token);
-        if (token) {
-          await logoutUser({token, navigate: navigation});
-        }
-      } catch (error) {
-        console.error('Error retrieving token:', error);
-      }
-    };
+    const logout = async () => {
+      await logoutUser(); // Clear user/token from state
+      ToastAndroid.show('Logout Successfully', ToastAndroid.SHORT);
 
-    fetchTokenAndLogout();
+      // ✅ Force reset navigation state and go to TabNavigator
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'TabNavigator'}],
+      });
+    };
+    logout();
   }, [logoutUser, navigation]);
 
   return (
@@ -219,6 +224,7 @@ const DrawerNavigator = () => {
         component={HealthHubRegisterStack}
         options={{title: 'HealthHub Registration'}}
       />
+
       <Drawer.Screen
         name="InstantVideo"
         component={InstantVideo}
@@ -254,11 +260,19 @@ const DrawerNavigator = () => {
         component={RefundPolicy}
         options={{title: 'Refund Policy'}}
       />
-      <Drawer.Screen
-        name="Logout"
-        component={LogoutScreen}
-        options={{title: 'Logout'}}
-      />
+      {user ? (
+        <Drawer.Screen
+          name="Logout"
+          component={LogoutScreen}
+          options={{title: 'Logout'}}
+        />
+      ) : (
+        <Drawer.Screen
+          name="LoginStack"
+          component={LoginStack}
+          options={{title: 'Login'}}
+        />
+      )}
 
       {/* Registration Screens - Required for navigation */}
     </Drawer.Navigator>

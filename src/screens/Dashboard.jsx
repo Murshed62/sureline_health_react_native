@@ -20,19 +20,46 @@ import HomeBlogs from '../components/shared/HomeBlogs/HomeBlogs';
 import {useStoreActions, useStoreState} from 'easy-peasy';
 import AddBanner from '../components/shared/AddBannner/AddBanner';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {getTokenUser} from '../utils/index.js';
 
 const Dashboard = () => {
-  const {user} = useStoreState(state => state.user); // Retrieve the user
+  const {loadUser} = useStoreActions(actions => actions.user);
+  const {user, token, isLogoutUser} = useStoreState(state => state.user); // Retrieve the user
   const {profileImage} = useStoreState(state => state.profileImage); // Access profile image from Easy Peasy store
   const navigation = useNavigation();
   const [scrollY, setScrollY] = useState(new Animated.Value(0));
   const {getPatient} = useStoreActions(action => action.patient);
-        const { patient, updatedData,patientImageData } = useStoreState((state) => state.patient);
-  const userID = user?._id;
+  const {patient, updatedData, patientImageData} = useStoreState(
+    state => state.patient,
+  );
+
+  const {getHealthHub} = useStoreActions(action => action.healthHub);
+  const {healthHub} = useStoreState(state => state.healthHub);
+
   useEffect(() => {
-    getPatient(userID);
-  }, [userID, getPatient,patientImageData]);
-  console.log('patient',patient );
+    getTokenUser()
+      .then(item => {
+        if (item) {
+          loadUser({token: item.token, user: item.user});
+        }
+      })
+      .catch(err => {
+        console.log('Error getting userData', err);
+      });
+  }, [loadUser]);
+
+  useEffect(() => {
+    if (!user || !token || isLogoutUser) return;
+
+    if (user.role === 'patient' && !patient) {
+      getPatient({id: user._id, token});
+    } else if (user.role === 'healthHub' && !healthHub) {
+      getHealthHub({id: user._id, token});
+    }
+  }, [user, token, isLogoutUser, getPatient, getHealthHub, patient, healthHub]);
+
+  console.log('patient', patient);
+  console.log('healthHub', healthHub);
   const headerBackgroundColor = scrollY.interpolate({
     inputRange: [0, 150],
     outputRange: ['transparent', 'lightblue'],
@@ -75,17 +102,27 @@ const Dashboard = () => {
         ]}>
         {/* User Icon */}
 
-        <View style={{display: 'flex', flexDirection: 'row', alignItems: 'center',gap: 30}}>
+        <View
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 30,
+          }}>
           <View style={styles.iconContainer}>
             <Image
-              source={userIcon}
+              source={
+                user && patient?.image
+                  ? {uri: patient.image} // ✅ remote image
+                  : userIcon // ✅ local fallback image
+              }
               style={styles.userIcon}
             />
           </View>
           <View style={styles.greetingContainer}>
             <Text style={styles.greetingHi}>Hi,</Text>
-            <Text style={styles.greetingName}>Shahadat Hossen</Text>
-        </View>
+            <Text style={styles.greetingName}>{user?.username}</Text>
+          </View>
         </View>
         {/* Menu Icon */}
 
@@ -153,36 +190,36 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   iconWrapper: {
-  alignItems: 'center',
-  marginLeft: 20,
-},
-greetingText: {
-  color: '#000',
-  fontSize: 14,
-  fontWeight: '500',
-  marginTop: 5,
-},
-greetingContainer: {
-  marginLeft: 10,
-  justifyContent: 'center',
-},
-greetingHi: {
-  fontSize: 16,
-  color: '#333',
-  fontWeight: '400',
-},
-greetingName: {
-  fontSize: 18,
-  color: '#000',
-  fontWeight: '700',
-  marginTop: -2,
-},
-notificationIconWrapper: {
-  padding: 10,
-  marginRight: 15,
-  // backgroundColor: 'red',
-  borderRadius: 20,
-},
+    alignItems: 'center',
+    marginLeft: 20,
+  },
+  greetingText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 5,
+  },
+  greetingContainer: {
+    marginLeft: 10,
+    justifyContent: 'center',
+  },
+  greetingHi: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '400',
+  },
+  greetingName: {
+    fontSize: 18,
+    color: '#000',
+    fontWeight: '700',
+    marginTop: -2,
+  },
+  notificationIconWrapper: {
+    padding: 10,
+    marginRight: 15,
+    // backgroundColor: 'red',
+    borderRadius: 20,
+  },
 });
 
 export default Dashboard;

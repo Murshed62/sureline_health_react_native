@@ -1,4 +1,5 @@
 // utils.js
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   addDays,
   getDaysInMonth,
@@ -49,15 +50,23 @@ const createSchedule = (totalDays, times) => {
   const today = new Date();
   const currentMonth = getMonth(today) + 1;
 
-  return Array.from({length: totalDays}).reduce((acc, _, index) => {
-    const date = addDays(today, index);
-    acc.push({
-      date: date.toISOString(),
-      status: 'available',
-      slots: createSlots(times),
-    });
-    return acc;
-  }, []);
+  const schedule = Array.from({ length: totalDays }, (_, i) => {
+    const date = addDays(today, i);
+    const isoDate = date.toISOString();
+    const updatedMonth = getMonth(date) + 1;
+
+    if (currentMonth === updatedMonth) {
+      return {
+        date: isoDate,
+        status: 'available',
+        slots: createSlots(times), // assuming this returns an array of time slots
+      };
+    }
+
+    return null; // skip days from next month
+  }).filter(Boolean); // remove null entries
+
+  return schedule;
 };
 
 // Filter users by role
@@ -104,6 +113,41 @@ const isValidEmailOrPhone = value => {
   return emailRegex.test(value) || phoneRegex.test(value);
 };
 
+const storeTokenUser = async ({token,user}) => {
+  try {
+    await AsyncStorage.setItem('token', token);
+    await AsyncStorage.setItem('user', user);
+    console.log('Token stored successfully');
+  }
+  catch (error) {
+    console.error('Error storing token:', error);
+  }
+};
+const getTokenUser = async () => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    const storedUser = await AsyncStorage.getItem('user');
+    console.log(storedUser);
+    return {
+      token: token || null,
+      user: storedUser ? JSON.parse(storedUser) : null,
+    };
+  }
+  catch (error) {
+    console.error('Error retrieving token:', error);
+  }
+};
+const removeTokenUser = async () => {
+  try {
+    await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
+    console.log('Token removed successfully');
+  }
+  catch (error) {
+    console.error('Error removing token:', error);
+  }
+};
+
 export {
   checkUpdatedData,
   specialityName,
@@ -115,4 +159,7 @@ export {
   getUpcomingAppointments,
   filterDoctorAppointments,
   isValidEmailOrPhone,
+  storeTokenUser,
+  getTokenUser,
+  removeTokenUser,
 };

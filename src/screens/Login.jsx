@@ -7,44 +7,28 @@ import {
   StyleSheet,
 } from 'react-native';
 import {useForm, Controller} from 'react-hook-form';
-import {useNavigation} from '@react-navigation/native';
-import {useStoreActions} from 'easy-peasy';
+import {useNavigation, useRoute} from '@react-navigation/native';
+import {useStoreActions, useStoreState} from 'easy-peasy';
+import { isValidEmailOrPhone } from '../utils/index.js';
 
 const LoginScreen = () => {
-  const [loginError, setLoginError] = useState(null);
   const {
     control,
     handleSubmit,
     formState: {errors},
-  } = useForm();
-  const loginUser = useStoreActions(actions => actions.user.loginUser);
+  } = useForm({mode:'onChange'});
+  const {loginUser,addLoginError} = useStoreActions(actions => actions.user);
+  const {loginError}=useStoreState(state => state.user);
+  const route = useRoute();
+  const from = route.params?.from || 'TabNavigator';
   const navigation = useNavigation();
-
-  const onSubmit = async data => {
-    setLoginError(null); // Reset previous error messages
-
+  const onSubmit = async data => { // Reset previous error messages
     const loginData = {
       credential: data.credential,
       password: data.password,
     };
+    loginUser({loginData,from,navigate:navigation.navigate});
 
-    try {
-      const response = await loginUser({
-        loginData,
-        from: 'TabNavigator',
-        navigate: navigation,
-      });
-
-      if (response?.success === false) {
-        setLoginError(
-          typeof response.message === 'string'
-            ? response.message
-            : 'Invalid email or password',
-        );
-      }
-    } catch (error) {
-      setLoginError('Something went wrong. Please try again.');
-    }
   };
 
   return (
@@ -54,13 +38,26 @@ const LoginScreen = () => {
       {/* Email or Phone Input */}
       <Controller
         control={control}
-        rules={{required: 'Email or phone is required'}}
-        render={({field: {onChange, value}}) => (
+        rules={{
+            required: 'Email is required',
+            validate: value =>
+              isValidEmailOrPhone(value) || 'Enter a valid email address',
+          }}
+        render={({field: {onChange, value,onBlur}}) => (
           <TextInput
-            style={styles.input}
-            placeholder="Email or Phone"
-            onChangeText={onChange}
+            style={[styles.input, errors.credential && {borderColor: 'red'}]}
+            placeholder="Enter your email."
+            onChangeText={text => {
+                onChange(text);
+                if(loginError){
+                    addLoginError(null);
+                }
+              }}
             value={value}
+            onBlur={onBlur}
+            autoComplete="email"
+              keyboardType="email-address"
+              autoCapitalize="none"
           />
         )}
         name="credential"
@@ -78,7 +75,12 @@ const LoginScreen = () => {
             style={styles.input}
             placeholder="Password"
             secureTextEntry
-            onChangeText={onChange}
+            onChangeText={text => {
+                onChange(text);
+                if(loginError){
+                    addLoginError(null);
+                }
+              }}
             value={value}
           />
         )}

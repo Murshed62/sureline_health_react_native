@@ -63,7 +63,9 @@ const DoctorRegistration = () => {
   const [times, setTimes] = useState([]);
   const date = new Date();
   const totalMonthDays = getTotalDaysInMonth(date);
+  console.log(totalMonthDays);
   const schedule = createSchedule(totalMonthDays, times);
+  console.log(schedule.length);
 
   const [show, setShow] = useState(false);
   const {registerUser, addRegisterError} = useStoreActions(
@@ -92,11 +94,15 @@ const DoctorRegistration = () => {
     formData.append('document', ''); // optional, can omit if unused
     formData.append(
       'dateOfBirth',
-      data.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0]  : '',
+      data.dateOfBirth
+        ? new Date(data.dateOfBirth).toISOString().split('T')[0]
+        : '',
     );
     formData.append(
       'bmdcExpiryDate',
-      data.bmdc_bvc_expiry ? new Date(data.bmdc_bvc_expiry).toISOString().split('T')[0]  : '',
+      data.bmdc_bvc_expiry
+        ? new Date(data.bmdc_bvc_expiry).toISOString().split('T')[0]
+        : '',
     );
     formData.append('mobile', data.mobile);
     formData.append('nidOrPassport', data.nid_passport);

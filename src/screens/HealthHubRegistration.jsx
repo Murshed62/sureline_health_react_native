@@ -60,6 +60,9 @@ const specialitys = [
 ];
 
 const HealthHubRegistration = () => {
+  const {user, token} = useStoreState(state => state.user);
+  console.log('user', user);
+  console.log('token', token);
   const [show, setShow] = useState(false);
   const {registerUser, addRegisterError} = useStoreActions(
     action => action.user,
@@ -89,18 +92,19 @@ const HealthHubRegistration = () => {
       name: data.pharmacy.fileName || 'signature.jpg',
       type: data.pharmacy.type || 'image/jpeg',
     });
+    formData.append('username', data.username);
+    formData.append('country', 'Bangladesh');
+    formData.append('nid', data.nid || ''); // e.g., 'Consultant'
     formData.append('pharmacyName', data.pharmacyName);
     formData.append('phanmacyReg', data.phanmacyReg);
-    formData.append('nid', data.nid); // or dynamic value
+    formData.append('description', data.description);
+    formData.append('division', data.division);
+    formData.append('district', data.district);
+    formData.append('upazila', data.upazila);
     formData.append('phone', data.phone); // e.g., 'Consultant'
     formData.append('category', data.category); // optional but good to match
     formData.append('service', data.service); // if needed
     formData.append('number', data.number); // optional, can omit if unused
-    formData.append('description', data.description);
-    formData.append('division', data.division);
-    formData.append('upazila', data.upazila);
-    formData.append('district', data.district);
-    formData.append('username', data.username);
     formData.append('credential', data.credential);
     formData.append('password', data.password);
     formData.append('role', 'healthHub');
@@ -165,11 +169,12 @@ const HealthHubRegistration = () => {
               ]}
               value={value}
               onChangeText={text => {
-                onChange(text);
+                onChange(text.replace(/[^0-9]/g, ''));
                 if (registerError) addRegisterError(null);
               }}
+              keyboardType="numeric"
               onBlur={onBlur}
-              placeholder="Enter last name"
+              placeholder="Enter Pharmacy Reg"
             />
           )}
         />
@@ -195,10 +200,11 @@ const HealthHubRegistration = () => {
               ]}
               value={value}
               onChangeText={text => {
-                onChange(text);
+                onChange(text.replace(/[^0-9]/g, ''));
                 if (registerError) addRegisterError(null);
               }}
               onBlur={onBlur}
+              keyboardType="numeric"
               placeholder="Enter your NID"
             />
           )}
@@ -242,12 +248,16 @@ const HealthHubRegistration = () => {
                 errors.gender && {borderColor: 'red'},
               ]}>
               <Picker selectedValue={value} onValueChange={onChange}>
+                <Picker.Item label="Select Model" value="" />
                 <Picker.Item label="Model" value="Model" />
                 <Picker.Item label="No Model" value="No Model" />
               </Picker>
             </View>
           )}
         />
+        {errors.category && (
+          <Text style={styles.errorText}>{errors.category.message}</Text>
+        )}
         {/* Payment service */}
         <Text style={styles.label}>Payment Service</Text>
         <Controller
@@ -261,7 +271,8 @@ const HealthHubRegistration = () => {
                 errors.gender && {borderColor: 'red'},
               ]}>
               <Picker selectedValue={value} onValueChange={onChange}>
-                <Picker.Item label="Bkash" value="Bkash" />
+                <Picker.Item label="Select payment service" value="" />
+                <Picker.Item label="Bkash" value="bKash" />
                 <Picker.Item label="Nagad" value="Nagad" />
                 <Picker.Item label="Rocket" value="Rocket" />
                 <Picker.Item label="Bank" value="Bank" />
@@ -269,6 +280,10 @@ const HealthHubRegistration = () => {
             </View>
           )}
         />
+
+        {errors.service && (
+          <Text style={styles.errorText}>{errors.service.message}</Text>
+        )}
 
         {/* Payent number  */}
         <Text>Payment number</Text>
