@@ -28,7 +28,7 @@ export default function DatePickerInput({date, setDate, label}) {
 
       {show && (
         <DateTimePicker
-          value={date || new Date()}
+          value={date}
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={onChange}

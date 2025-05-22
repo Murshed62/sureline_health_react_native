@@ -5,7 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ToastAndroid} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {removeTokenUser, storeTokenUser} from '../utils/index.js';
-import { Linking } from 'react-native';
+import {Linking} from 'react-native';
+import InAppBrowser from 'react-native-inappbrowser-reborn';
 // import {Linking} from 'react-native';
 // import Config from 'react-native-config';
 
@@ -30,12 +31,7 @@ const userModel = {
   isLogIn: false,
   user: null,
   token: null, // Initially set to null
-  // Fetch user data from AsyncStorage
-
-  initializeUser: thunk(async actions => {
-    const storedUser = await getUserFromStorage();
-    actions.addUser(storedUser);
-  }),
+  // Fetch user data from AsyncStorag
   addUser: action((state, payload) => {
     state.user = payload;
   }),
@@ -368,6 +364,7 @@ const patientModel = {
   }),
 
   getPatient: thunk(async (actions, {id, token}) => {
+    console.log(id,token)
     const {data} = await axios.get(
       `https://api.surelinehealth.com/api/patient/${id}`,
       {
@@ -376,6 +373,7 @@ const patientModel = {
         },
       },
     );
+    console.log(data)
     actions.addPatient(data);
   }),
   // Action to set delete state
@@ -425,14 +423,13 @@ const patientModel = {
   }),
 
   // Thunk to update patient image
-  updatePatientImage: thunk(async (actions, payload) => {
+  updatePatientImage: thunk(async (actions, {userID, formData,token}) => {
     try {
-      const {userID, formData} = payload;
       const {data} = await axios.patch(
         `https://api.surelinehealth.com/api/patientImage/${userID}`,
         formData,
         {
-          headers: {'Content-Type': 'multipart/form-data'},
+          headers:{'Content-Type':'multipart/form-data',Authorization: `Bearer ${token}`},
         },
       );
       actions.addPatientImageData(data);
@@ -643,31 +640,41 @@ const sslCommerzModel = {
   addUrl: action((state, payload) => {
     state.url = payload;
   }),
-  getUrl: thunk(async (actions, { payload, token }) => {
-  try {
-    console.log(payload);
-    console.log(token);
-
-    const { data } = await axios.post(
-      'https://api.surelinehealth.com/api/initApplyForPayment',
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
+  getUrl: thunk(async (actions, {payload, token}) => {
+    try {
+      const {data: paymentUrl} = await axios.post(
+        'https://api.surelinehealth.com/api/initApplyForPayment',
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      }
-    );
+      );
+      if (await InAppBrowser.isAvailable()) {
+        await InAppBrowser.open(paymentUrl, {
+          // Optional styling options
+          dismissButtonStyle: 'close',
+          preferredBarTintColor: '#453AA4',
+          preferredControlTintColor: 'white',
+          readerMode: false,
+          animated: true,
+          modalPresentationStyle: 'fullScreen',
+          modalTransitionStyle: 'coverVertical',
+          modalEnabled: true,
+          enableBarCollapsing: false,
+        });
 
-    console.log('Redirecting to:', data);
-    if (data) {
-      Linking.openURL(data); // Opens in mobile browser
-    } else {
-      console.error('Invalid URL returned from API');
+        // Listen for success/fail/cancel based on polling or status check
+        // OR: add timeout and navigate manually
+      } else {
+        Linking.openURL(paymentUrl); // fallback
+      }
+    } catch (error) {
+      console.log(error)
+      console.error('Error in getUrl thunk:', error);
     }
-  } catch (error) {
-    console.error('Error in getUrl thunk:', error);
-  }
-}),
+  }),
 };
 const freeAppointmentModel = {
   data: null,

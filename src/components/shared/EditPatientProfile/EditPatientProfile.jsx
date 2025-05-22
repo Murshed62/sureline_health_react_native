@@ -13,6 +13,7 @@ import {useStoreActions} from 'easy-peasy';
 import {Picker} from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {checkUpdatedData} from '../../../utils/index.js';
+import DatePickerInput from '../../UI/DatePickerInput.jsx';
 
 const EditPatientProfile = ({userID, handleClose}) => {
   const {updateProfile} = useStoreActions(action => action.patient);
@@ -28,9 +29,10 @@ const EditPatientProfile = ({userID, handleClose}) => {
       dateOfBirth: date.toISOString().split('T')[0], // Format date as YYYY-MM-DD
     });
 
-    updateProfile({updatedFormData, userID});
-    reset();
-    handleClose();
+    console.log(updatedFormData);
+    // updateProfile({updatedFormData, userID});
+    // reset();
+    // handleClose();
   };
 
   return (
@@ -100,24 +102,18 @@ const EditPatientProfile = ({userID, handleClose}) => {
           )}
         />
 
-        {/* Date of Birth with Date Picker */}
-        <TouchableOpacity
-          style={styles.input}
-          onPress={() => setShowDatePicker(true)}>
-          <Text style={styles.dateText}>{date.toDateString()}</Text>
-        </TouchableOpacity>
-
-        {showDatePicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, selectedDate) => {
-              setShowDatePicker(false);
-              if (selectedDate) setDate(selectedDate);
-            }}
-          />
-        )}
+        <Controller
+          control={control}
+          name="dateOfBirth"
+          defaultValue={null}
+          render={({field: {value, onChange}}) => (
+            <DatePickerInput
+              label="Date of Birth"
+              date={value}
+              setDate={onChange}
+            />
+          )}
+        />
 
         {/* Gender Picker */}
         <Controller

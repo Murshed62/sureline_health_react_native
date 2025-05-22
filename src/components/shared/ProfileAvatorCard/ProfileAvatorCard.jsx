@@ -1,162 +1,152 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
-import {useForm, Controller} from 'react-hook-form';
-import {useStoreActions, useStoreState} from 'easy-peasy'; // Import hooks for Easy Peasy
-import {launchImageLibrary} from 'react-native-image-picker';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, Button, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { useForm, Controller } from 'react-hook-form';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { useStoreActions, useStoreState } from 'easy-peasy';
 
-export const ProfileAvatorCard = ({item}) => {
-  console.log('item dekhte chai', item);
+export default function ProfileAvatarCard({ item }) {
+  const {
+  control,
+  handleSubmit,
+  setValue,
+  reset,
+  formState: { errors },
+} = useForm();
+  const { updatePatientImage } = useStoreActions(action => action.patient);
+  const { user ,token} = useStoreState(state => state.user);
 
-  const {control, handleSubmit, reset} = useForm();
-  const {updateDoctorImage} = useStoreActions(actions => actions.doctor); // Action for doctor image update
-  const {updatePatientImage} = useStoreActions(actions => actions.patient); // Action for patient image update
-  const {updateUserImage} = useStoreActions(actions => actions.user); // Action to update user image in global store
-  const {user} = useStoreState(state => state.user); // Accessing current user from store
-  const userID = item?._id;
+  const [previewImage, setPreviewImage] = useState(null);
+  const [currentImage, setCurrentImage] = useState(null);
 
-  const onSubmit = async data => {
-    const formData = new FormData();
-    formData.append('image', {
-      uri: data.image.uri,
-      type: 'image/jpeg',
-      name: 'profile.jpg',
+  const userID = item._id;
+
+  useEffect(() => {
+    const imageFromDB = item?.image || '';
+    setCurrentImage(imageFromDB);
+  }, [item, user.role]);
+
+  const pickImage = () => {
+    launchImageLibrary({ mediaType: 'photo' }, (response) => {
+      if (response.didCancel) return;
+      if (response.errorMessage) {
+        Alert.alert('Error', response.errorMessage);
+        return;
+      }
+
+      if (response.assets && response.assets.length > 0) {
+        const file = response.assets[0];
+        setPreviewImage(file.uri);
+
+        const fileObj = {
+          uri: file.uri,
+          type: file.type,
+          name: file.fileName,
+        };
+
+        setValue('image', fileObj);
+      }
     });
-
-    // Handle image update based on user role
-    if (user.role === 'doctor') {
-      updateDoctorImage({userID, formData});
-    } else if (user.role === 'patient') {
-      updatePatientImage({userID, formData});
-    }
-
-    // Reset the form state
-    reset();
   };
 
-  const pickImage = async onChange => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      includeBase64: false,
-      maxHeight: 200,
-      maxWidth: 200,
-    });
+  const onSubmit = async (data) => {
+    const formData = new FormData();
+    formData.append('image', data.image);
 
-    if (!result.didCancel && !result.error) {
-      const selectedImage = result.assets[0];
-      onChange(selectedImage); // Update the form state with the selected image
+    try {
+      await updatePatientImage({ userID, formData ,token});
 
-      // Create FormData for uploading the image
-      const formData = new FormData();
-      formData.append('image', {
-        uri: selectedImage.uri,
-        type: selectedImage.type,
-        name: selectedImage.fileName || 'profile.jpg',
-      });
-
-      // Save the picked image URI to the global store (Easy Peasy)
-      updateUserImage(selectedImage.uri); // Save the image URI in the store
-
-      // Upload image based on user role
-      if (user.role === 'doctor') {
-        updateDoctorImage({userID, formData});
-      } else if (user.role === 'patient') {
-        updatePatientImage({userID, formData});
-      }
+      setPreviewImage(null);
+      setCurrentImage(data.image.uri);
+      reset();
+    } catch (error) {
+      console.error('Upload failed:', error);
     }
   };
 
   return (
-    <View style={styles.card}>
-      <Image
-        source={{uri: user.role === 'doctor' ? item?.profile : item?.image}} // Use profile or image based on role
-        style={styles.avatar}
-        alt="No image uploaded"
-      />
-      <View style={styles.formContainer}>
-        <Controller
-          control={control}
-          name="image"
-          render={({field: {onChange}}) => (
-            <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={() => pickImage(onChange)} // Call pickImage when button is pressed
-            >
-              <Text style={styles.uploadButtonText}>Choose New Photo</Text>
-            </TouchableOpacity>
-          )}
-        />
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={handleSubmit(onSubmit)} // Handle form submission
-        >
-          <Text style={styles.submitButtonText}>Upload New Photo</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+  <View style={styles.card}>
+  <Image
+    source={{ uri: previewImage || currentImage || 'https://via.placeholder.com/120' }}
+    style={styles.avatar}
+  />
+  <Text style={styles.label}>Profile Photo</Text>
+
+  <TouchableOpacity style={styles.chooseButton} onPress={pickImage}>
+    <Text style={styles.buttonText}>Choose New Photo</Text>
+  </TouchableOpacity>
+
+  {/* Show validation error if image is not selected */}
+  {errors.image && (
+    <Text style={styles.errorText}>{errors.image.message}</Text>
+  )}
+
+  <View style={{ marginTop: 15 }}>
+    <Controller
+      control={control}
+      name="image"
+      rules={{ required: 'Please choose an image before uploading.' }}
+      render={({ field }) => null}
+    />
+    <TouchableOpacity style={styles.uploadButton} onPress={handleSubmit(onSubmit)}>
+      <Text style={styles.buttonText}>Upload New Photo</Text>
+    </TouchableOpacity>
+  </View>
+</View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   card: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
     margin: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    paddingVertical: 25,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
   },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    objectFit: 'cover',
+    borderWidth: 2,
+    borderColor: '#007bff',
+    marginBottom: 10,
   },
-  formContainer: {
-    marginTop: 10,
-    width: '100%',
-    alignItems: 'center',
+  label: {
+    fontSize: 16,
+    marginBottom: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  chooseButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
   uploadButton: {
-    backgroundColor: '#1976d2',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-    alignItems: 'center',
+    backgroundColor: '#007bff',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+    marginTop: 10,
   },
-  uploadButtonText: {
+  buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
-  submitButton: {
-    backgroundColor: '#1976d2',
-    borderRadius: 5,
-    padding: 10,
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
+  errorText: {
+  color: 'red',
+  marginTop: 5,
+  fontSize: 14,
+  fontWeight: '500',
+},
 });
-
-export default ProfileAvatorCard;

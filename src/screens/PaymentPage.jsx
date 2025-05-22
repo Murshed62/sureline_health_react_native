@@ -13,34 +13,40 @@ import {useRoute, useNavigation} from '@react-navigation/native';
 import {useStoreActions, useStoreState} from 'easy-peasy';
 import {format} from 'date-fns';
 
-import { useForm, Controller } from 'react-hook-form';
+import {useForm, Controller} from 'react-hook-form';
 
 const PromoSection = () => {
-  const { user ,token} = useStoreState(state => state.user);
-  const { getPromoCodeByCode } = useStoreActions(actions => actions.promoCode);
-  const { error, promoCodeByCode } = useStoreState(state => state.promoCode);
+  const {user, token} = useStoreState(state => state.user);
+  const {getPromoCodeByCode} = useStoreActions(actions => actions.promoCode);
+  const {error, promoCodeByCode} = useStoreState(state => state.promoCode);
 
-  const { control, handleSubmit, reset, formState: { errors } } = useForm();
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: {errors},
+  } = useForm();
 
-  const onSubmit = async (data) => {
+  const onSubmit = async data => {
     const code = data.promoCode;
     getPromoCodeByCode({ code, userId: user?._id ,token});
     reset();
   };
 
   return (
-    <View style={{
-      padding: 20,
-      backgroundColor: '#fff',
-      borderRadius: 10,
-      marginVertical: 20,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2
-    }}>
-      <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+    <View
+      style={{
+        padding: 20,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        marginVertical: 20,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+      }}>
+      <Text style={{fontSize: 18, fontWeight: 'bold', marginBottom: 10}}>
         Apply Promo Code
       </Text>
 
@@ -48,9 +54,9 @@ const PromoSection = () => {
         {/* Promo Code Input */}
         <Controller
           control={control}
-          rules={{ required: 'This field is required' }}
+          rules={{required: 'This field is required'}}
           name="promoCode"
-          render={({ field: { onChange, onBlur, value } }) => (
+          render={({field: {onChange, onBlur, value}}) => (
             <TextInput
               style={{
                 borderWidth: 1,
@@ -58,7 +64,7 @@ const PromoSection = () => {
                 borderRadius: 8,
                 padding: 10,
                 marginBottom: 8,
-                fontSize: 16
+                fontSize: 16,
               }}
               placeholder="Enter Promo Code"
               onBlur={onBlur}
@@ -68,29 +74,28 @@ const PromoSection = () => {
           )}
         />
         {errors.promoCode && (
-          <Text style={{ color: 'red', marginBottom: 8 }}>
+          <Text style={{color: 'red', marginBottom: 8}}>
             {errors.promoCode.message}
           </Text>
         )}
 
         {/* Error Message */}
-        {error && (
-          <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text>
-        )}
+        {error && <Text style={{color: 'red', marginBottom: 8}}>{error}</Text>}
 
         {/* Invalid Code Message */}
         {promoCodeByCode?.valid === 'notValid' && !error && (
-          <Text style={{ color: 'red', marginBottom: 8 }}>
+          <Text style={{color: 'red', marginBottom: 8}}>
             This Promo Code is applicable only for Patient Accounts
           </Text>
         )}
 
         {/* Success Message */}
-        {(promoCodeByCode?.percent > 0 || promoCodeByCode?.percent === 100) && !error && (
-          <Text style={{ color: 'green', marginBottom: 8 }}>
-            Discount Applied: {promoCodeByCode?.percent}%
-          </Text>
-        )}
+        {(promoCodeByCode?.percent > 0 || promoCodeByCode?.percent === 100) &&
+          !error && (
+            <Text style={{color: 'green', marginBottom: 8}}>
+              Discount Applied: {promoCodeByCode?.percent}%
+            </Text>
+          )}
 
         {/* Apply Button */}
         <TouchableOpacity
@@ -100,10 +105,9 @@ const PromoSection = () => {
             paddingVertical: 12,
             borderRadius: 8,
             alignItems: 'center',
-            marginTop: 10
-          }}
-        >
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+            marginTop: 10,
+          }}>
+          <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold'}}>
             Apply Now
           </Text>
         </TouchableOpacity>
@@ -112,23 +116,24 @@ const PromoSection = () => {
   );
 };
 
-
-
-const BillSection = ({ patientData }) => {
+const BillSection = ({patientData}) => {
   const navigation = useNavigation();
 
-  const { user ,token} = useStoreState(state => state.user);
-  const { promoCodeByCode } = useStoreState(state => state.promoCode);
-  const { getUrl } = useStoreActions(actions => actions.sslCommerz);
-  const { createFreeAppointment } = useStoreActions(actions => actions.freeAppointment);
- console.log(promoCodeByCode)
-  const discountAmount = (patientData.fee * (promoCodeByCode?.percent ?? 0)) / 100;
+  const {user, token} = useStoreState(state => state.user);
+  console.log(token)
+  const {promoCodeByCode} = useStoreState(state => state.promoCode);
+  const {getUrl} = useStoreActions(actions => actions.sslCommerz);
+  const {createFreeAppointment} = useStoreActions(
+    actions => actions.freeAppointment,
+  );
+  const discountAmount =
+    (patientData.fee * (promoCodeByCode?.percent ?? 0)) / 100;
   const totalFee = patientData.fee - discountAmount;
 
   const generatePayload = () => {
     return {
       ...patientData,
-      patientID: user?.role === 'patient' ? patientData.patientID : null,
+      patientID: user?.role === 'patient' ? user?._id : null,
       referenceHealhtHubID:
         user?.role === 'healthHub'
           ? user?._id
@@ -142,13 +147,12 @@ const BillSection = ({ patientData }) => {
 
   const handlePayment = () => {
     const payload = generatePayload();
-    console.log(payload)
-    getUrl({ payload,token });
+    getUrl({payload, token});
   };
 
   const handleFreeAppointment = () => {
     const payload = generatePayload();
-    createFreeAppointment({ payload, navigation });
+    createFreeAppointment({payload, navigation});
   };
 
   return (
@@ -169,18 +173,28 @@ const BillSection = ({ patientData }) => {
 
       <PromoSection />
 
-        <TouchableOpacity style={styles.button} onPress={handlePayment}>
-          <Text style={styles.buttonText}>Continue to Payment</Text>
-        </TouchableOpacity>
-      {/* {promoCodeByCode?.percent === 100 ? (
+      <TouchableOpacity style={styles.button} onPress={handlePayment}>
+        <Text style={styles.buttonText}>Continue to Payment</Text>
+      </TouchableOpacity>
+      {promoCodeByCode?.percent === 100 ? (
         <TouchableOpacity style={styles.button} onPress={handleFreeAppointment}>
           <Text style={styles.buttonText}>Free Appointment</Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity style={styles.button} onPress={handlePayment}>
-          <Text style={styles.buttonText}>Continue to Payment</Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#aaa',
+            padding: 12,
+            borderRadius: 8,
+            alignItems: 'center',
+          }}
+          onPress={handleFreeAppointment}
+          disabled={true}>
+          <Text style={{color: '#fff', fontWeight: 'bold'}}>
+            Free Appointment
+          </Text>
         </TouchableOpacity>
-      )} */}
+      )}
     </View>
   );
 };

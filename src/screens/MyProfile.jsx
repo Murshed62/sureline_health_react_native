@@ -89,28 +89,23 @@ const ProfileDetails = ({patient}) => {
 const MyProfile = () => {
   const navigation = useNavigation();
   const {getPatient} = useStoreActions(action => action.patient);
-  const {initializeUser} = useStoreActions(action => action.user);
   const {patient, updatedData, patientImageData} = useStoreState(
     state => state.patient,
   );
-  const {user} = useStoreState(state => state.user);
+  const {user, token} = useStoreState(state => state.user);
 
   const [open, setOpen] = useState(false);
   const [openCP, setOpenCP] = useState(false);
 
   const userID = user?._id;
   const userEmail = user?.email;
+  console.log(user, token);
 
   useEffect(() => {
-    initializeUser();
-  }, [initializeUser]);
+    getPatient({id: userID, token});
+  }, [user, getPatient, updatedData, patientImageData, userID, token]);
 
-  useEffect(() => {
-    if (userID) {
-      getPatient(userID);
-    }
-  }, [user, getPatient, updatedData, patientImageData, userID]);
-
+  console.log(patient);
   const handleAppointment = () => {
     navigation.navigate('MyAppointments');
   };
@@ -132,6 +127,7 @@ const MyProfile = () => {
       }}>
       <View style={{alignItems: 'center', marginBottom: 20}}>
         <ProfileAvatorCard item={patient} />
+        <ProfileDetails patient={patient} />
       </View>
       <View style={{width: '100%', alignItems: 'center'}}>
         {[
@@ -139,11 +135,6 @@ const MyProfile = () => {
             text: 'Edit Profile',
             onPress: () => setOpen(true),
             color: '#4F46E5',
-          },
-          {
-            text: 'Change Password',
-            onPress: () => setOpenCP(true),
-            color: '#D97706',
           },
           {text: 'Appointments', onPress: handleAppointment, color: '#059669'},
           {text: 'Invoice', onPress: () => setOpenCP(true), color: '#DC2626'},
@@ -177,14 +168,6 @@ const MyProfile = () => {
           userID={userID}
         />
       </OpenModal>
-      <OpenModal open={openCP} handleClose={() => setOpenCP(false)}>
-        <ChangePassword
-          handleClose={() => setOpenCP(false)}
-          userEmail={userEmail}
-          userID={userID}
-        />
-      </OpenModal>
-      <ProfileDetails patient={patient} />
     </ScrollView>
   );
 };
