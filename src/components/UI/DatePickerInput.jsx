@@ -32,7 +32,6 @@ export default function DatePickerInput({date, setDate, label}) {
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={onChange}
-          maximumDate={new Date()}
         />
       )}
     </View>

@@ -8,11 +8,10 @@ import backArrow from '../../../assets/back.png';
 import download from '../../../assets/download.png';
 
 const AppointmentDetails = ({open, handleClose, isDoctor}) => {
+  const {user,token}=useStoreState(state=>state.user);
   const navigation = useNavigation(); // Navigation Hook
   const route = useRoute();
   const {appointment} = route.params || {};
-
-  console.log(appointment._id);
 
   const {createPrescription} = useStoreActions(actions => actions.prescription);
 
@@ -23,8 +22,9 @@ const AppointmentDetails = ({open, handleClose, isDoctor}) => {
 
   const id = appointment?._id;
   useEffect(() => {
-    getAppointmentByid(id);
-  }, [getAppointmentByid, id]);
+    getAppointmentByid({payload:id,token});
+  }, [getAppointmentByid,id,token]);
+
   console.log(appointmentByIdData);
 
   return (

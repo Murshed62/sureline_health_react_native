@@ -18,7 +18,7 @@ export default function ProfileAvatarCard({ item }) {
   const [previewImage, setPreviewImage] = useState(null);
   const [currentImage, setCurrentImage] = useState(null);
 
-  const userID = item._id;
+  const userID = item?._id;
 
   useEffect(() => {
     const imageFromDB = item?.image || '';

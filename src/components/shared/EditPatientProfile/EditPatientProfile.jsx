@@ -9,13 +9,15 @@ import {
   Platform,
 } from 'react-native';
 import {useForm, Controller} from 'react-hook-form';
-import {useStoreActions} from 'easy-peasy';
+import {useStoreActions, useStoreState} from 'easy-peasy';
 import {Picker} from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {checkUpdatedData} from '../../../utils/index.js';
 import DatePickerInput from '../../UI/DatePickerInput.jsx';
+import {formatDate} from 'date-fns';
 
 const EditPatientProfile = ({userID, handleClose}) => {
+  const {user, token} = useStoreState(state => state.user);
   const {updateProfile} = useStoreActions(action => action.patient);
   const {control, handleSubmit, reset} = useForm();
 
@@ -24,15 +26,19 @@ const EditPatientProfile = ({userID, handleClose}) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const onSubmit = data => {
-    const updatedFormData = checkUpdatedData({
+    const preparedData = {
       ...data,
-      dateOfBirth: date.toISOString().split('T')[0], // Format date as YYYY-MM-DD
-    });
+      age: data.age ? Number(data.age) : undefined,
+      height: data.height ? Number(data.height) : undefined,
+      weight: data.weight ? Number(data.weight) : undefined,
+      phone: data.phone ? Number(data.phone) : undefined,
+    };
 
+    const updatedFormData = checkUpdatedData(preparedData);
     console.log(updatedFormData);
-    // updateProfile({updatedFormData, userID});
-    // reset();
-    // handleClose();
+    updateProfile({updatedFormData, userID, token});
+    reset();
+    handleClose();
   };
 
   return (
@@ -40,13 +46,14 @@ const EditPatientProfile = ({userID, handleClose}) => {
       <Text style={styles.title}>Edit Your Profile</Text>
       <View style={styles.form}>
         {/* First Name */}
+        <Text>First Name:</Text>
         <Controller
           control={control}
           name="firstName"
           render={({field: {onChange, onBlur, value}}) => (
             <TextInput
               style={styles.input}
-              placeholder="First Name"
+              placeholder="Enter your first name"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -56,13 +63,14 @@ const EditPatientProfile = ({userID, handleClose}) => {
         />
 
         {/* Last Name */}
+        <Text>Last Name:</Text>
         <Controller
           control={control}
           name="lastName"
           render={({field: {onChange, onBlur, value}}) => (
             <TextInput
               style={styles.input}
-              placeholder="Last Name"
+              placeholder="Enter your last name"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -72,6 +80,7 @@ const EditPatientProfile = ({userID, handleClose}) => {
         />
 
         {/* Phone */}
+        <Text>Phone:</Text>
         <Controller
           control={control}
           name="phone"
@@ -79,15 +88,19 @@ const EditPatientProfile = ({userID, handleClose}) => {
             <TextInput
               style={styles.input}
               placeholder="Phone"
-              keyboardType="phone-pad"
+              keyboardType="numeric"
               onBlur={onBlur}
-              onChangeText={onChange}
+              onChangeText={text => {
+                const cleaned = text.replace(/[^0-9]/g, ''); // Remove non-digits
+                onChange(cleaned);
+              }}
               value={value}
             />
           )}
         />
 
         {/* Address */}
+        <Text>Address:</Text>
         <Controller
           control={control}
           name="address"
@@ -101,21 +114,8 @@ const EditPatientProfile = ({userID, handleClose}) => {
             />
           )}
         />
-
-        <Controller
-          control={control}
-          name="dateOfBirth"
-          defaultValue={null}
-          render={({field: {value, onChange}}) => (
-            <DatePickerInput
-              label="Date of Birth"
-              date={value}
-              setDate={onChange}
-            />
-          )}
-        />
-
         {/* Gender Picker */}
+        <Text>Gender:</Text>
         <Controller
           control={control}
           name="gender"
@@ -135,6 +135,7 @@ const EditPatientProfile = ({userID, handleClose}) => {
         />
 
         {/* Blood Type */}
+        <Text>Blood Type:</Text>
         <Controller
           control={control}
           name="blood"
@@ -150,6 +151,7 @@ const EditPatientProfile = ({userID, handleClose}) => {
         />
 
         {/* Age */}
+        <Text>Age:</Text>
         <Controller
           control={control}
           name="age"
@@ -159,13 +161,17 @@ const EditPatientProfile = ({userID, handleClose}) => {
               placeholder="Age"
               keyboardType="number-pad"
               onBlur={onBlur}
-              onChangeText={onChange}
+              onChangeText={text => {
+                const cleaned = text.replace(/[^0-9]/g, '');
+                onChange(cleaned);
+              }}
               value={value}
             />
           )}
         />
 
         {/* Height */}
+        <Text>Height:</Text>
         <Controller
           control={control}
           name="height"
@@ -175,13 +181,17 @@ const EditPatientProfile = ({userID, handleClose}) => {
               placeholder="Height (ft)"
               keyboardType="number-pad"
               onBlur={onBlur}
-              onChangeText={onChange}
+              onChangeText={text => {
+                const cleaned = text.replace(/[^0-9]/g, ''); // Only digits
+                onChange(cleaned);
+              }}
               value={value}
             />
           )}
         />
 
         {/* Weight */}
+        <Text>Weight:</Text>
         <Controller
           control={control}
           name="weight"
@@ -189,9 +199,14 @@ const EditPatientProfile = ({userID, handleClose}) => {
             <TextInput
               style={styles.input}
               placeholder="Weight (kg)"
-              keyboardType="number-pad"
+              keyboardType="decimal-pad" // supports dot input on iOS
               onBlur={onBlur}
-              onChangeText={onChange}
+              onChangeText={text => {
+                const cleaned = text
+                  .replace(/[^0-9.]/g, '') // remove all except digits and dot
+                  .replace(/(\..*)\./g, '$1'); // allow only one dot
+                onChange(cleaned);
+              }}
               value={value}
             />
           )}

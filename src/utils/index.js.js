@@ -11,6 +11,7 @@ import {
 
 // Remove empty fields from form data
 const checkUpdatedData = data => {
+  console.log('checkUpdateData',data)
   return Object.keys(data).reduce((acc, key) => {
     if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
       acc[key] = data[key];

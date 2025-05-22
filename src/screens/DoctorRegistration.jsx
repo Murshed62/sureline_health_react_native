@@ -194,7 +194,7 @@ const DoctorRegistration = () => {
         <Controller
           control={control}
           name="dateOfBirth"
-          defaultValue={null}
+          defaultValue={new Date()}
           rules={{required: 'Date of Birth is required'}}
           render={({field: {value, onChange}}) => (
             <DatePickerInput
@@ -362,7 +362,7 @@ const DoctorRegistration = () => {
         <Controller
           control={control}
           name="bmdc_bvc_expiry"
-          defaultValue={null}
+          defaultValue={new Date()}
           render={({field: {value, onChange}}) => (
             <DatePickerInput
               label="BMDC/BVC Expiry Date"

@@ -47,7 +47,6 @@ const BookAppointment = () => {
   const {getSingleDoctor} = useStoreActions(actions => actions.doctor);
   const {singleDoctor} = useStoreState(state => state.doctor);
   const {getPatient} = useStoreActions(actions => actions.patient);
-  const {initializeUser} = useStoreActions(actions => actions.user);
   const {patient} = useStoreState(state => state.patient);
   const {user, token} = useStoreState(state => state.user);
   console.log(patient);
@@ -62,10 +61,6 @@ const BookAppointment = () => {
   const [scheduleID, setScheduleID] = useState(null);
   const [slotID, setSlotID] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    initializeUser();
-  }, [initializeUser]);
 
   useEffect(() => {
     if (user?._id) {
@@ -129,7 +124,7 @@ const BookAppointment = () => {
       timeValue,
       ...data,
     };
-    console.log(payload);
+    // console.log(payload);
     navigation.navigate('PaymentPage', {state: payload});
   };
 

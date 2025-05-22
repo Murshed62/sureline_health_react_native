@@ -404,12 +404,15 @@ const patientModel = {
   }),
 
   // Thunk to update patient profile
-  updateProfile: thunk(async (actions, payload) => {
+  updateProfile: thunk(async (actions, {userID, updatedFormData,token}) => {
     try {
-      const {userID, updatedFormData} = payload;
       const {data} = await axios.patch(
         `https://api.surelinehealth.com/api/patient/${userID}`,
-        updatedFormData,
+        updatedFormData,{
+          headers:{
+                Authorization: `Bearer ${token}`,
+            },
+        }
       );
       actions.addUpdatedData(data);
     } catch (error) {
@@ -616,9 +619,13 @@ const appointmentModel = {
   addGetAppointmentById: action((state, payload) => {
     state.appointmentByIdData = payload;
   }),
-  getAppointmentByid: thunk(async (actions, payload) => {
+  getAppointmentByid: thunk(async (actions, {payload,token}) => {
     const {data} = await axios.get(
-      `https://api.surelinehealth.com/api/appointments/${payload}`,
+      `https://api.surelinehealth.com/api/appointments/${payload}`,{
+        headers:{
+                Authorization: `Bearer ${token}`,
+            },
+      }
     );
     actions.addGetAppointmentById(data);
   }),

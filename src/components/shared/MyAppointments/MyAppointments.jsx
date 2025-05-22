@@ -7,10 +7,10 @@ const FilterValue = ({handleFilterValue, activeFilter}) => {
   return (
     <View style={styles.buttonContainer}>
       <Button
-        mode={activeFilter === 'pending' ? 'contained' : 'outlined'}
-        onPress={() => handleFilterValue('pending')}
-        buttonColor={activeFilter === 'pending' ? '#8e24aa' : '#fff'}
-        textColor={activeFilter === 'pending' ? '#fff' : '#000'}>
+        mode={activeFilter === 'panding' ? 'contained' : 'outlined'}
+        onPress={() => handleFilterValue('panding')}
+        buttonColor={activeFilter === 'panding' ? '#8e24aa' : '#fff'}
+        textColor={activeFilter === 'panding' ? '#fff' : '#000'}>
         Pending
       </Button>
 
@@ -42,12 +42,11 @@ const FilterValue = ({handleFilterValue, activeFilter}) => {
 };
 
 const MyAppointments = () => {
-  const [filterValue, setFilterValue] = useState('pending');
+  const [filterValue, setFilterValue] = useState('panding');
 
   const handleFilterValue = data => {
     setFilterValue(data);
   };
-  console.log('filter data',filterValue);
   return (
     <View style={styles.container}>
       <FilterValue
